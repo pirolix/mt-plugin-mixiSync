@@ -18,7 +18,7 @@ use MT::Util;
 
 use vars qw( $MYNAME $VERSION );
 $MYNAME = 'mixiSync';
-$VERSION = '2.00';
+$VERSION = '2.01';
 
 use base qw( MT::Plugin );
 my $plugin = new MT::Plugin({
@@ -60,7 +60,7 @@ sub add_mixi_sync {
     <mt:if name="saved_deleted_ping">
 HTML
     my $add = <<HTML;
-        <mtapp:statusmsg    
+        <mtapp:statusmsg
             id="mixisync-init-error"
             class="error">
 $MYNAME: <MT_TRANS phrase="Invalid author_id">
@@ -241,12 +241,22 @@ sub add_mixi_sync_edit_author {
     my $mixi_premium;
     &GetPluginData( $author_id, \$mixi_user_id, \$mixi_premium );
 
+    # MT4.25
     my $old = quotemeta( <<HTML );
+<mt:if name="id">
+    <mt:if name="can_use_userpic">
+    <mtapp:setting
+        id="userpic_asset_id"
+HTML
+    if ($$template !~ /$old/) {
+        # < MT4.21
+        $old = quotemeta( <<HTML );
 <mt:if name="id">
     <mtapp:setting
         id="userpic_asset_id"
 HTML
-    my $mixi_premium_checked = $mixi_premium ? ' checked' : '';
+    }
+    my $mixi_premium_checked = $mixi_premium ? ' checked="checked"' : '';
     my $add = <<HTML;
     <mtapp:setting
         id="mixisync"
