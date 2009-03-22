@@ -3,7 +3,7 @@ use strict;
 #   mixiSync - Easy way of the duplicated post from MovableType entry into mixi diary.
 #           Original Copyright (c) 2006-2008 Piroli YUKARINOMIYA (MagicVox)
 #           Open MagicVox.net - http://www.magicvox.net/
-#           @see http://www.magicvox.net/archive/2006/02041724
+#           @see http://www.magicvox.net/archive/2006/02041724/
 
 #   This code is released under the Artistic License.
 #   The terms of the Artistic License are described at
@@ -18,7 +18,7 @@ use MT::Util;
 
 use vars qw( $MYNAME $VERSION );
 $MYNAME = 'mixiSync';
-$VERSION = '2.01';
+$VERSION = '2.02';
 
 use base qw( MT::Plugin );
 my $plugin = new MT::Plugin({
@@ -273,7 +273,7 @@ HTML
 }
 
 ### Store mixi user setting into MT::PluginData
-MT::Author->add_callback( 'pre_save', 9, $plugin, \&mixi_sync_author_presave );
+MT::Author->add_callback( 'post_save', 9, $plugin, \&mixi_sync_author_presave );
 sub mixi_sync_author_presave {
     my( $cb, $obj ) = @_;
     my $q = MT->instance->{query}
@@ -281,20 +281,24 @@ sub mixi_sync_author_presave {
     my $author_id = $obj->id
         or return undef;
 
-    my $plugindataobj = MT::PluginData->load({
-            plugin => $MYNAME, key => 'author_id::'. $author_id });
-    unless( $plugindataobj ) {
-        $plugindataobj = MT::PluginData->new
-            or return $cb->error( $MYNAME. ': failed to initialize MT::PluginData' );
-        $plugindataobj->plugin( $MYNAME );
-        $plugindataobj->key( 'author_id::'. $author_id );
+    # http://lab.magicvox.net/trac/mt-plugins/ticket/5
+    if (defined( my $mixi_user_id = $q->param( 'mixi_user_id' ))) {
+        my $plugindataobj = MT::PluginData->load({
+                plugin => $MYNAME, key => 'author_id::'. $author_id });
+        unless( $plugindataobj ) {
+            $plugindataobj = MT::PluginData->new
+                or return $cb->error( $MYNAME. ': failed to initialize MT::PluginData' );
+            $plugindataobj->plugin( $MYNAME );
+            $plugindataobj->key( 'author_id::'. $author_id );
+        }
+
+        my $plugindata = {};
+        $plugindata->{mixi_user_id} = $mixi_user_id;
+        $plugindata->{mixi_premium} = $q->param( 'mixi_premium' ) || 0;
+        $plugindataobj->data( $plugindata );
+        $plugindataobj->save
+            or return $cb->error( $plugindataobj->errstr );
     }
-    my $plugindata = {};
-    $plugindata->{mixi_user_id} = $q->param( 'mixi_user_id' ) || 0;
-    $plugindata->{mixi_premium} = $q->param( 'mixi_premium' ) || 0;
-    $plugindataobj->data( $plugindata );
-    $plugindataobj->save
-        or return $cb->error( $plugindataobj->errstr );
 }
 
 
